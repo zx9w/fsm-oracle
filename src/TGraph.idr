@@ -130,3 +130,79 @@ convertList' n edges = traverse (\x => natToFin x n) edges
 mkTGraph : (Nat, List (Nat, Nat)) -> Maybe (DPair Nat (\size => Graph (Fin size)))
 mkTGraph (size, edges) = do convertedEdges <- convertList size edges
                             pure (size ** MkGraph $ fromList convertedEdges)
+
+{-
+StringDiag := {
+  tensor := {
+    tensor := {
+      f
+      g
+    }
+    sequence := {
+      h
+      identity A
+      }
+    }
+  }
+}
+
+data Tree o m = Tensor Tree Tree | Sequence Tree Tree | Id o | Mor m
+-}
+-- PetriSpec
+-- Vertex: Nat, Edges : List ((List Nat), (List Nat))
+PetriVertex : TDefR 0
+PetriVertex = TProd [List Nat, List (List Nat, List Nat)]
+
+PetriState : TDefR 0
+PetriState = TList `ap` TNat
+
+PetriPath : TDefR 2
+PetriPath = TMu [ ("Tensor", TProd [TVar 0, TVar 0])
+                , ("Sequence", TProd [TVar 0, TVar 0])
+                , ("Id", TVar 1)
+                , ("Mor", TVar 2)
+                ]
+{-
+FSMSpec, FSMState, FSMPath
+
+Tensor f g : a c -> b d
+       |
+      xa
+   /      \
+ /          \
+ |         ;
+ |        /    \
+ x       |   id
+/  \     |     |
+f  g     h   x
+              /   \
+             a    b
+(f * g) * (h;id_a)
+
+
+
+DecEq a => Maybe HYpergraph a b -> Maybe HYpergraph b c -> Maybe (Hypergraph a c)
+a b = [| compose a b |] <=> pure compose <*> a <$> b
+
+{a,b,c,d : TDef 0} -> Mor a b -> Mor' c d  -> Maybe (Mor a d)
+if b = c then Compose
+otherwise fuck off
+
+PetriOracle : (description : (PEtriSpec, PetriState, PetriPath)) -> Maybe (tree : Tree Nat (List Nat, List Nat))
+           -> Maybe (left : Domain tree ** right : Codomain tree ** Hypergraph left right)
+
+
+HasObject tree -> (p : Object tree ** Position tree)
+-}
+
+Domain : (morphisms : Vect k (List a, List a)) -> Tree a (Fin k) -> List a
+Domain _ (Tensor l r) = Domain l ++ Domain r
+Domain _ (Sequence l r) = Domain l
+Domain _ (Id o) = o
+Domain m (Mor i) = fst $ index i m
+
+CoDomain : (morphisms : Vect k (List a, List a)) -> Tree a (Fin k) -> List a
+CoDomain _ (Tensor l r) = CoDomain l ++ CoDomain r
+CoDomain _ (Sequence l r) = CoDomain r
+CoDomain _ (Id o) = o
+CoDomain m (Mor i) = snd $ index i m
