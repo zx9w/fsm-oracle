@@ -43,7 +43,7 @@ shuffleComp {ds} (ThereS aab) (Ins {ys=zs} bz bzc) cd eq1  eq2 eq3 with (shuffle
                   | Refl with (swComb atu bud)
                     | SW2 {ys=ss} bts asd with (eq3)
                       | Refl with (shuffle bxw wv)
-                        | Ins {ys=rs} xr brv = ?wat
+                        | Ins {ys=rs} xr brv = ?pleaseLeaveMeAlone
 -- vs = ss
 -- avd = asd
 -- rs = ts

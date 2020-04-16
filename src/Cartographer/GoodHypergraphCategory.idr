@@ -56,4 +56,4 @@ goodHypergraphSMC s ai ao = MkStrictMonoidalCategory
   (\as => Refl)
   (\as => appendNilRightNeutral as)
   appendAssociative
-  ?wat -- (\fi, fo, gi, go, hi, ho, (Element f ff), (Element g gg), (Element h hh) => subsetEq (hgTensorAssociative fi fo gi go hi ho f g h))
+  ?proofgoodhypergraph -- (\fi, fo, gi, go, hi, ho, (Element f ff), (Element g gg), (Element h hh) => subsetEq (hgTensorAssociative fi fo gi go hi ho f g h))
