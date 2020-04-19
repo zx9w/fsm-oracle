@@ -16,6 +16,8 @@ import Cartographer.Hypergraph as HG
 import Cartographer.HypergraphCategory
 import Cartographer.HypergraphStrictMonoidalCategory
 
+%access public export
+
 data GoodHypergraph : {s : Type} -> {ai, ao : s -> List o} -> (g : Hypergraph s ai ao k l) -> Type where
     Singleton : (edge : s) -> GoodHypergraph (singleton edge)
     Permutation : (p : Perm k l) -> GoodHypergraph (permutation p)

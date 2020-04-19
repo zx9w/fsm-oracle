@@ -5,7 +5,9 @@ import Basic.Category
 import Basic.Functor
 import Product.ProductCategory
 import Permutations.Permutations
+import Permutations.SwapDown
 import Cartographer.Hypergraph
+import Cartographer.GoodHypergraphCategory
 import Cartographer.HypergraphStrictMonoidalCategory
 import MonoidalCategory.StrictMonoidalCategory
 
@@ -79,26 +81,34 @@ Codomain m (Mor i) = snd $ index i m
 PetriPath : Nat -> Nat -> Type
 PetriPath places k = Tree (Fin places) (Fin k)
 
-everything : (spec : PetriSpec k) -> (path : PetriPath (Places spec) k)
-          -> Maybe (mor (cat (hypergraphSMC (Fin k)
-                                            (\m => fst $ index m (Edges spec))
-                                            (\m => snd $ index m (Edges spec))))
+goodMapping : (spec : PetriSpec k) -> (path : PetriPath (Places spec) k)
+          -> Maybe (mor (cat (goodHypergraphSMC (Fin k)
+                                                (\m => fst $ index m (Edges spec))
+                                                (\m => snd $ index m (Edges spec))))
                         (Domain (Edges spec) path)
                         (Codomain (Edges spec) path))
-everything s (Tensor lt rt) = [| everything s lt `add` everything s rt |]
-everything s (Sequence lt rt) {k} = do
-  lt' <- everything s lt
-  rt' <- everything s rt
-  case decEq (Domain (Edges s) rt) (Codomain (Edges s) lt) of
-       Yes p =>  let rt'' = replace
-                              {P = (\newDom => Hypergraph (Fin k)
+goodMapping s (Tensor x y) = do
+  x' <- goodMapping s x
+  y' <- goodMapping s y
+  pure $ Element (getWitness x' `add` getWitness y') (VComp (getProof x') (getProof y'))
+goodMapping s (Sequence x y) {k} = do
+  x' <- goodMapping s x
+  y' <- goodMapping s y
+  case decEq (Domain (Edges s) y) (Codomain (Edges s) x) of
+       Yes p =>  let y'' = replace
+                              {P = (\newDom => Subset (Hypergraph (Fin k)
                                                  (\m => fst $ index m (Edges s))
                                                  (\m => snd $ index m (Edges s))
                                                  newDom
-                                                 (Codomain (Edges s) rt))
+                                                 (Codomain (Edges s) y))
+                                                 GoodHypergraph)
                               }
-                              p rt' in pure (compose lt' rt'')
+                              p y'
+                  in pure $ Element (Hypergraph.compose (getWitness x') (getWitness y'')) (HComp (getProof x') (getProof y''))
        No _ => Nothing
-everything _ (Sym a b) = Just (permutation (swap [a] [b]))
-everything _ (Id o) = Just (Hypergraph.identity [o])
-everything _ (Mor m) = Just (Hypergraph.singleton m)
+
+goodMapping s (Sym a b) = Just $ Element (permutation (swap [a] [b]))
+  (GoodHypergraphCategory.Permutation (Ins (Ins Nil HereS) (ThereS HereS)))
+goodMapping s (Id x) = Just $ Element (Hypergraph.identity [x])
+  (GoodHypergraphCategory.Permutation (Ins Nil HereS))
+goodMapping s (Mor x) = Just $ Element (Hypergraph.singleton x) (Singleton x)
