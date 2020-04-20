@@ -81,16 +81,22 @@ Codomain m (Mor i) = snd $ index i m
 PetriPath : Nat -> Nat -> Type
 PetriPath places k = Tree (Fin places) (Fin k)
 
+goodPetriSMC : (spec : PetriSpec k) -> StrictMonoidalCategory
+goodPetriSMC spec = goodHypergraphSMC (Fin k)
+                                      (\m => fst $ index m (Edges spec))
+                                      (\m => snd $ index m (Edges spec))
+
 goodMapping : (spec : PetriSpec k) -> (path : PetriPath (Places spec) k)
-          -> Maybe (mor (cat (goodHypergraphSMC (Fin k)
-                                                (\m => fst $ index m (Edges spec))
-                                                (\m => snd $ index m (Edges spec))))
-                        (Domain (Edges spec) path)
-                        (Codomain (Edges spec) path))
+           -> Maybe (mor (cat (goodPetriSMC spec))
+                         (Domain (Edges spec) path)
+                         (Codomain (Edges spec) path))
 goodMapping s (Tensor x y) = do
   x' <- goodMapping s x
   y' <- goodMapping s y
-  pure $ Element (getWitness x' `add` getWitness y') (VComp (getProof x') (getProof y'))
+  pure $ mapMor (tensor (goodPetriSMC s))
+                (Domain (Edges s) x, Domain (Edges s) y)
+                (Codomain (Edges s) x, Codomain (Edges s) y)
+                (MkProductMorphism x' y')
 goodMapping s (Sequence x y) {k} = do
   x' <- goodMapping s x
   y' <- goodMapping s y
@@ -104,11 +110,9 @@ goodMapping s (Sequence x y) {k} = do
                                                  GoodHypergraph)
                               }
                               p y'
-                  in pure $ Element (Hypergraph.compose (getWitness x') (getWitness y'')) (HComp (getProof x') (getProof y''))
+                  in pure $ compose (cat (goodPetriSMC s)) _ _ _ x' y''
        No _ => Nothing
-
+goodMapping s (Id x) = Just $ identity (cat (goodPetriSMC s)) [x]
 goodMapping s (Sym a b) = Just $ Element (permutation (swap [a] [b]))
   (GoodHypergraphCategory.Permutation (Ins (Ins Nil HereS) (ThereS HereS)))
-goodMapping s (Id x) = Just $ Element (Hypergraph.identity [x])
-  (GoodHypergraphCategory.Permutation (Ins Nil HereS))
 goodMapping s (Mor x) = Just $ Element (Hypergraph.singleton x) (Singleton x)
