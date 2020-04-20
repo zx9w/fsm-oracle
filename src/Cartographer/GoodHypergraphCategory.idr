@@ -43,6 +43,12 @@ goodHypergraphCat {o} sigma arityIn arityOut = MkCategory
   (\a, b, (Element g gg) => subsetEq (hgRightId a b g))
   (\a, b, c, d, (Element f ff), (Element g gg), (Element h hh) => subsetEq (hgAssoc a b c d f g h))
 
+goodSingleton : {s : Type} -> {ai, ao : s -> List o} -> (edge : s) -> mor (goodHypergraphCat s ai ao) (ai edge) (ao edge)
+goodSingleton x = Element (Hypergraph.singleton x) (Singleton x)
+
+goodPermutation : {s : Type} -> {ai, ao : s -> List o} -> Perm k m -> mor (goodHypergraphCat s ai ao) k m
+goodPermutation p = Element (permutation p) (Permutation p)
+
 goodHyperGraphTensor : (s : Type) -> (ai, ao : s -> List o) -> CFunctor (productCategory (goodHypergraphCat s ai ao) (goodHypergraphCat s ai ao)) (goodHypergraphCat s ai ao)
 goodHyperGraphTensor s ai ao = MkCFunctor
   (\a => fst a ++ snd a)

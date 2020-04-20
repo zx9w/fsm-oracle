@@ -113,6 +113,5 @@ goodMapping s (Sequence x y) {k} = do
                   in pure $ compose (cat (goodPetriSMC s)) _ _ _ x' y''
        No _ => Nothing
 goodMapping s (Id x) = Just $ identity (cat (goodPetriSMC s)) [x]
-goodMapping s (Sym a b) = Just $ Element (permutation (swap [a] [b]))
-  (GoodHypergraphCategory.Permutation (Ins (Ins Nil HereS) (ThereS HereS)))
-goodMapping s (Mor x) = Just $ Element (Hypergraph.singleton x) (Singleton x)
+goodMapping s (Sym a b) = Just $ goodPermutation (swap [a] [b])
+goodMapping s (Mor x) = Just $ goodSingleton x
