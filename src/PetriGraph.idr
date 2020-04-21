@@ -48,14 +48,13 @@ PetriPath = TMu [ ("Tensor", TProd [TVar 0, TVar 0])
 
 -}
 
+public export
 record PetriSpec (k : Nat) where
   constructor MkPetriSpec
   Places : Nat
   Edges : Vect k (List (Fin Places), List (Fin Places))
 
-PetriState : Type
-PetriState = List Nat
-
+public export
 data Tree o m = Tensor (Tree o m) (Tree o m)
               | Sequence (Tree o m) (Tree o m)
               | Sym o o
@@ -80,6 +79,14 @@ Codomain m (Mor i) = snd $ index i m
 
 PetriPath : Nat -> Nat -> Type
 PetriPath places k = Tree (Fin places) (Fin k)
+
+checkTree : (spec : PetriSpec k) -> Tree Nat Nat -> Maybe (PetriPath (Places spec) k)
+checkTree spec (Tensor x y) = [| Tensor (checkTree spec x) (checkTree spec y) |]
+checkTree spec (Sequence x y) = [| Sequence (checkTree spec x) (checkTree spec y) |]
+checkTree spec (Sym x y) = [| Sym (natToFin x (Places spec)) (natToFin y (Places spec)) |]
+checkTree spec (Id x) = Id <$> natToFin x (Places spec)
+checkTree spec (Mor x) {k} = Mor <$> natToFin x k
+
 
 goodPetriSMC : (spec : PetriSpec k) -> StrictMonoidalCategory
 goodPetriSMC spec = goodHypergraphSMC (Fin k)
@@ -115,3 +122,15 @@ goodMapping s (Sequence x y) {k} = do
 goodMapping s (Id x) = Just $ identity (cat (goodPetriSMC s)) [x]
 goodMapping s (Sym a b) = Just $ goodPermutation (swap [a] [b])
 goodMapping s (Mor x) = Just $ goodSingleton x
+
+PetriState : PetriSpec k -> Type
+PetriState spec = List (Fin (Places spec))
+
+composeWithId : (spec : PetriSpec k) -> (path : PetriPath (Places spec) k)
+             -> (state : PetriState spec)
+             -> Maybe (mor (cat (goodPetriSMC spec))
+                           (state)
+                           (Codomain (Edges spec) path))
+composeWithId spec path state with (decEq state (Domain (Edges spec) path))
+  composeWithId spec path state | Yes prf = rewrite prf in goodMapping spec path
+  composeWithId spec path state | No _ = Nothing
