@@ -36,6 +36,8 @@ import Typedefs.TermParse
 import Typedefs.TermWrite
 
 import TGraph
+import PetriGraph
+import PetriFormat
 import GraphCat
 
 -- base
@@ -59,6 +61,19 @@ checkFSM fileContent = do
     let v = lastStep cat a b m
     pure ()
 
+checkPetri : String -> FSMCheck ()
+checkPetri fileContent = do
+    content <- maybe (Left JSONError) Right (parse fileContent)
+    petri <- either (const $ Left InvalidFSM) Right (Typedefs.TermParse.deserialiseJSON TPetriExec
+      [ (Nat ** expectNat)
+      , (List (List Nat, List Nat) ** expectListListEdges)
+      , (List Nat ** expectListNat)
+      ]
+      content)
+    let True = isJust $ composeWithId (Spec petri) (Path petri) (State Petri)
+      | Left InvalidFSM
+    pure ()
+
 
 toTDef : FSMCheck () -> Ty [] TResult
 toTDef (Left err) = Right (toTDefErr err)
@@ -74,4 +89,14 @@ main = do
     let checkedFSM = asFSMCheck >>= checkFSM
     printLn (TermWrite.serialiseJSON [] [] TResult (toTDef checkedFSM))
 
+-- partial
+-- main : IO ()
+-- main = do
+--     [_,filename] <- getArgs
+--       | _ => putStrLn "Usage: fsm-oracle FILE"
+--     content <-  (readFile filename)
+--     let asFSMCheck = either (const (Left FSError)) Right content
+--     let checkedFSM = asFSMCheck >>= checkFSM
+--     printLn (TermWrite.serialiseJSON [] [] TResult (toTDef checkedFSM))
+--
 

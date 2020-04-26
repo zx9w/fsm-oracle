@@ -31,6 +31,14 @@ import TGraph
 
 import Typedefs.Typedefs
 
+public export
+ParseError : Type -> Type
+ParseError = Either String
+
+public export
+JSONParser : Type -> Type
+JSONParser t = JSON -> ParseError t
+
 listPairToJSON : List (Nat, Nat) -> JSON
 listPairToJSON xs = JArray $ map
   (\(a, b) => JObject [("input", JNumber $ cast a), ("output", JNumber $ cast b)]) xs
@@ -41,7 +49,7 @@ expectNat (JNumber n) = if n < 0 then Left "Expected Nat"
                                  else pure $ Prelude.toNat {a=Int} $ cast n
 expectNat _ = Left "Expected Nat"
 
-expectEdges : JSON -> Either String (Nat, Nat)
+expectEdges : JSONParser (Nat, Nat)
 expectEdges (JObject [("input", a),("output", b)])= [| MkPair (expectNat a) (expectNat b) |]
 expectEdges _ = Left "expected list of edges"
 
@@ -54,8 +62,16 @@ expectListNat : JSON -> Either String (List Nat)
 expectListNat js = expectList js >>= traverse expectNat
 
 export
-expectListEdges : JSON -> Either String (List (Nat, Nat))
+expectListEdges : JSONParser (List (Nat, Nat))
 expectListEdges js = expectList js >>= traverse expectEdges
+
+expectPair : (JSONParser a) -> (JSONParser b) -> JSONParser (a, b)
+expectPair pa pb (JObject [("_0", a), ("_1", b)]) = [| MkPair (pa a) (pb b) |]
+expectPair pa pb _ = Left "Expected Pair"
+
+export
+expectListListEdges : JSON -> Either String (List (List Nat, List Nat))
+expectListListEdges js = expectList js >>= traverse (expectPair expectListNat expectListNat)
 
 public export
 TResult : TDefR 0

@@ -13,40 +13,6 @@ import MonoidalCategory.StrictMonoidalCategory
 
 
 %default total
-{-
-StringDiag := {
-  tensor := {
-    tensor := {
-      f
-      g
-    }
-    sequence := {
-      h
-      identity A
-      }
-    }
-  }
-}
-
-data Tree o m = Tensor Tree Tree | Sequence Tree Tree | Id o | Mor m
--}
--- PetriSpec
--- Vertex: Nat, Edges : List ((List Nat), (List Nat))
-{-
-PetriVertex : TDefR 0
-PetriVertex = TProd [TList Nat, TList (TList Nat, TList Nat)]
-
-PetriState : TDefR 0
-PetriState = TList `ap` TNat
-
-PetriPath : TDefR 2
-PetriPath = TMu [ ("Tensor", TProd [TVar 0, TVar 0])
-                , ("Sequence", TProd [TVar 0, TVar 0])
-                , ("Id", TVar 1)
-                , ("Mor", TVar 2)
-                ]
-
--}
 
 public export
 record PetriSpec (k : Nat) where
@@ -61,6 +27,23 @@ data Tree o m = Tensor (Tree o m) (Tree o m)
               | Id o
               | Mor m
 
+public export
+PetriState : PetriSpec k -> Type
+PetriState spec = List (Fin (Places spec))
+
+public export
+PetriPath : Nat -> Nat -> Type
+PetriPath places k = Tree (Fin places) (Fin k)
+
+public export
+record PetriExec where
+  constructor MkPetriExec
+  Spec : PetriSpec k
+  Path : PetriPath (Places Spec) k
+  State : PetriState Spec
+
+
+public export
 Domain : (morphisms : Vect k (List a, List a)) -> Tree a (Fin k) -> List a
 Domain m (Tensor l r) = (Domain m l) ++ (Domain m r)
 Domain m (Sequence l r) = Domain m l
@@ -68,7 +51,7 @@ Domain m (Id o) = pure o
 Domain m (Sym l r) = [l, r]
 Domain m (Mor i) = fst $ index i m
 
-
+public export
 Codomain : (morphisms : Vect k (List a, List a)) -> Tree a (Fin k) -> List a
 Codomain m (Tensor l r) = Codomain m l ++ Codomain m r
 Codomain m (Sequence l r) = Codomain m r
@@ -76,10 +59,7 @@ Codomain m (Id o) = pure o
 Codomain m (Sym l r) = [r, l]
 Codomain m (Mor i) = snd $ index i m
 
-
-PetriPath : Nat -> Nat -> Type
-PetriPath places k = Tree (Fin places) (Fin k)
-
+export
 checkTree : (spec : PetriSpec k) -> Tree Nat Nat -> Maybe (PetriPath (Places spec) k)
 checkTree spec (Tensor x y) = [| Tensor (checkTree spec x) (checkTree spec y) |]
 checkTree spec (Sequence x y) = [| Sequence (checkTree spec x) (checkTree spec y) |]
@@ -88,6 +68,7 @@ checkTree spec (Id x) = Id <$> natToFin x (Places spec)
 checkTree spec (Mor x) {k} = Mor <$> natToFin x k
 
 
+public export
 goodPetriSMC : (spec : PetriSpec k) -> StrictMonoidalCategory
 goodPetriSMC spec = goodHypergraphSMC (Fin k)
                                       (\m => fst $ index m (Edges spec))
@@ -123,9 +104,7 @@ goodMapping s (Id x) = Just $ identity (cat (goodPetriSMC s)) [x]
 goodMapping s (Sym a b) = Just $ goodPermutation (swap [a] [b])
 goodMapping s (Mor x) = Just $ goodSingleton x
 
-PetriState : PetriSpec k -> Type
-PetriState spec = List (Fin (Places spec))
-
+export
 composeWithId : (spec : PetriSpec k) -> (path : PetriPath (Places spec) k)
              -> (state : PetriState spec)
              -> Maybe (mor (cat (goodPetriSMC spec))
